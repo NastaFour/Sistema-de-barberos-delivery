@@ -1,0 +1,205 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User types enum
+enum UserRole {
+  CLIENT
+  BARBER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// Main user model
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  role      UserRole @default(CLIENT)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  clientBookings   Booking[]   @relation("ClientBookings")
+  barberBookings   Booking[]   @relation("BarberBookings")
+  barberProfile    BarberProfile?
+  reviewsGiven     Review[]    @relation("ReviewGiven")
+  reviewsReceived  Review[]    @relation("ReviewReceived")
+  notifications    Notification[]
+
+  @@index([email])
+  @@index([role])
+}
+
+// Extended profile for barbers
+model BarberProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String?
+  specialty       String[]
+  yearsExperience Int?
+  isVerified      Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  rating          Float    @default(0.0)
+  totalReviews    Int      @default(0)
+  
+  // Service area (coordinates)
+  latitude        Float?
+  longitude       Float?
+  serviceRadius   Float    @default(10.0) // km
+  
+  // Availability
+  availability    Json?    // { monday: {start: "09:00", end: "18:00"}, ... }
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  services    BarberService[]
+  bookings    Booking[]
+  gallery     BarberGallery[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([latitude, longitude])
+}
+
+// Services offered by barbers
+model BarberService {
+  id          String  @id @default(uuid())
+  barberId    String
+  barber      BarberProfile @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Float
+  duration    Int     // minutes
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  bookingServices BookingService[]
+
+  @@index([barberId])
+}
+
+// Bookings
+model Booking {
+  id            String        @id @default(uuid())
+  clientId      String
+  client        User          @relation("ClientBookings", fields: [clientId], references: [id])
+  barberId      String
+  barber        BarberProfile @relation("BarberBookings", fields: [barberId], references: [id])
+  status        BookingStatus @default(PENDING)
+  
+  // Location
+  address       String
+  latitude      Float
+  longitude     Float
+  notes         String?
+  
+  // Schedule
+  scheduledAt   DateTime
+  startedAt     DateTime?
+  completedAt   DateTime?
+  
+  // Pricing
+  subtotal      Float
+  serviceFee    Float         @default(0.0)
+  total         Float
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  services BookingService[]
+  review   Review?
+
+  @@index([clientId])
+  @@index([barberId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+// Junction table for booking services
+model BookingService {
+  id        String  @id @default(uuid())
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   BarberService @relation(fields: [serviceId], references: [id])
+  quantity  Int     @default(1)
+  price     Float   // snapshot of price at booking time
+
+  @@unique([bookingId, serviceId])
+  @@index([bookingId])
+  @@index([serviceId])
+}
+
+// Reviews
+model Review {
+  id          String   @id @default(uuid())
+  bookingId   String   @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      User     @relation("ReviewGiven", fields: [clientId], references: [id])
+  barberId    String
+  barber      User     @relation("ReviewReceived", fields: [barberId], references: [id])
+  rating      Int      // 1-5
+  comment     String?
+  images      String[] // URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([barberId])
+  @@index([rating])
+}
+
+// Barber portfolio/gallery
+model BarberGallery {
+  id        String   @id @default(uuid())
+  barberId  String
+  barber    BarberProfile @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  caption   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([barberId])
+}
+
+// Notifications
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // BOOKING_UPDATE, PROMOTION, SYSTEM, etc.
+  isRead    Boolean  @default(false)
+  link      String?  // optional link (e.g., to booking)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
