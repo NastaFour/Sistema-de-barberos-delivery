@@ -1,6 +1,6 @@
 import prisma from '../config/db';
 import { getSocket } from './socket.service';
-import { checkAvailability } from './availability.service';
+import { isSlotAvailable, getAvailableSlots as getSlots } from './availability.service';
 
 interface CreateBookingDTO {
   clientId: string;
@@ -47,8 +47,8 @@ export async function createBooking(data: CreateBookingDTO) {
   // Calcular duración total y verificar disponibilidad
   const totalDuration = services.reduce((sum, s) => sum + s.duration, 0);
   
-  const isAvailable = await checkAvailability(barberId, scheduledAt, totalDuration);
-  if (!isAvailable) {
+  const { available } = await isSlotAvailable(barberId, scheduledAt, serviceIds, 15);
+  if (!available) {
     throw new Error('El barbero no está disponible en ese horario');
   }
 
@@ -355,5 +355,5 @@ export async function cancelBooking(bookingId: string, userId: string, role: str
 }
 
 export async function getAvailableSlots(barberId: string, date: Date) {
-  return await checkAvailability(barberId, date, 0, true);
+  return await getSlots(barberId, date);
 }

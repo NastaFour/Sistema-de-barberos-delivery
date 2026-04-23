@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { prisma } from '../config/db';
+import prisma from '../config/db';
 
 interface BookingData {
   barberId: string;
@@ -21,7 +21,10 @@ interface LocationUpdate {
 /**
  * Configura los eventos de Socket.io para tiempo real
  */
+let ioInstance: Server | null = null;
+
 export function setupSocketEvents(io: Server) {
+  ioInstance = io;
   io.on('connection', (socket: Socket) => {
     console.log(`Cliente conectado: ${socket.id}`);
 
@@ -192,4 +195,8 @@ async function findNearbyAvailableBarbers(
     );
     return distance <= radiusKm;
   });
+}
+
+export function getSocket(): Server | null {
+  return ioInstance;
 }
