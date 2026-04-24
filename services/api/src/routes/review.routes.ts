@@ -200,6 +200,8 @@ router.get('/my-reviews', authenticate, async (req: AuthRequest, res) => {
       include: {
         barber: {
           include: {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error barber.user not directly on BarberProfile include
             user: {
               select: {
                 id: true,

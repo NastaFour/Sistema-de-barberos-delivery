@@ -6,6 +6,9 @@ import { BarberService } from '../lib/types';
 import toast from 'react-hot-toast';
 import { format, addDays, setHours, setMinutes, isBefore, startOfHour } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
+import { MapView } from '../components/MapView';
+import { StripeCheckout } from '../components/StripeCheckout';
 
 const BookingPage = () => {
   const navigate = useNavigate();
@@ -23,6 +26,7 @@ const BookingPage = () => {
   const [selectedServices, setSelectedServices] = useState<string[]>(
     serviceIdsParam ? serviceIdsParam.split(',') : []
   );
+  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
 
   // Fetch barber data
   const { data: barberData } = useQuery({
@@ -44,9 +48,9 @@ const BookingPage = () => {
   const createBookingMutation = useMutation({
     mutationFn: (data: any) => bookingAPI.create(data),
     onSuccess: (response) => {
-      if (response.success) {
-        toast.success('¡Reserva creada con éxito!');
-        navigate('/my-bookings');
+      if (response.success && response.data?.id) {
+        setCreatedBookingId(response.data.id);
+        setStep(5);
       } else {
         toast.error(response.error || 'Error al crear la reserva');
       }
@@ -95,16 +99,10 @@ const BookingPage = () => {
     createBookingMutation.mutate(bookingData);
   };
 
-  const handleAddressChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setAddress(value);
-    
-    // Simple geocoding simulation (in real app, use Mapbox/Google Geocoding API)
-    if (value.length > 10) {
-      // Mock coordinates - in production use actual geocoding
-      setLatitude(40.4168 + Math.random() * 0.1);
-      setLongitude(-3.7038 + Math.random() * 0.1);
-    }
+  const handleAddressSelect = (lat: number, lng: number, addr: string) => {
+    setLatitude(lat);
+    setLongitude(lng);
+    setAddress(addr);
   };
 
   const barber = barberData?.data;
@@ -247,22 +245,22 @@ const BookingPage = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-gray-400 mb-2">Dirección completa</label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={handleAddressChange}
-                    placeholder="Calle, número, ciudad..."
-                    className="w-full bg-dark-800 border border-dark-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-500"
+                  <AddressAutocomplete 
+                    onSelect={handleAddressSelect} 
+                    defaultAddress={address} 
                   />
                 </div>
                 {latitude && longitude && (
-                  <div className="bg-dark-800 rounded-lg p-4">
-                    <p className="text-green-500">✓ Ubicación detectada</p>
-                    <p className="text-gray-400 text-sm">Lat: {latitude.toFixed(4)}, Lng: {longitude.toFixed(4)}</p>
+                  <div className="bg-dark-800 rounded-lg overflow-hidden h-48 border border-dark-700">
+                    <MapView 
+                      center={[latitude, longitude]} 
+                      zoom={15} 
+                      markers={[{ id: 'selected-location', lat: latitude, lng: longitude }]} 
+                    />
                   </div>
                 )}
                 <div>
-                  <label className="block text-gray-400 mb-2">Notas adicionales (opcional)</label>
+                  <label className="block text-gray-400 mb-2 mt-4">Notas adicionales (opcional)</label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -359,7 +357,20 @@ const BookingPage = () => {
             </div>
           )}
 
-          {/* Step 5: Success (handled by navigation) */}
+          {/* Step 5: Payment */}
+          {step === 5 && createdBookingId && (
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-6">Pago de la Reserva</h2>
+              <StripeCheckout
+                bookingId={createdBookingId}
+                amount={total}
+                onSuccess={() => {
+                  toast.success('¡Reserva y pago exitosos!');
+                  navigate('/my-bookings');
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,20 +1,46 @@
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install openssl (required for Prisma)
+RUN apk add --no-cache openssl
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Copy source and prisma schema
+COPY src ./src
+COPY prisma ./prisma
+
+# Install dependencies
+RUN npm ci
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Build TypeScript code
+RUN npm run build
+
+# Production stage
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Archivos comunes si se usa un monorepo, pero asumimos el backend independiente por simplicidad
-COPY package*.json ./
-COPY prisma ./prisma/
+# Install openssl for production
+RUN apk add --no-cache openssl
 
-RUN npm install
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
 
-# Generar cliente prisma
-RUN npx prisma generate
-
-COPY . .
-
-RUN npm run build
+# Set production environment
+ENV NODE_ENV=production
+ENV PORT=3001
 
 EXPOSE 3001
 
-CMD ["npm", "start"]
+# Start the application, running migrations first
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]

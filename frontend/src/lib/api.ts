@@ -66,6 +66,43 @@ export const barberAPI = {
     const response = await api.get(`/barbers/${id}`);
     return response.data;
   },
+
+  updateProfile: async (id: string, data: any) => {
+    const response = await api.put(`/barbers/${id}`, data);
+    return response.data;
+  },
+
+  updateStatus: async (id: string, isActive: boolean) => {
+    const response = await api.patch(`/barbers/${id}/status`, { isActive });
+    return response.data;
+  },
+
+  // Services
+  createService: async (id: string, data: any) => {
+    const response = await api.post(`/barbers/${id}/services`, data);
+    return response.data;
+  },
+
+  updateService: async (serviceId: string, data: any) => {
+    const response = await api.put(`/barbers/services/${serviceId}`, data);
+    return response.data;
+  },
+
+  deleteService: async (serviceId: string) => {
+    const response = await api.delete(`/barbers/services/${serviceId}`);
+    return response.data;
+  },
+
+  // Gallery
+  addGalleryImage: async (data: { imageUrl: string; caption?: string; order?: number }) => {
+    const response = await api.post(`/barbers/gallery`, data);
+    return response.data;
+  },
+
+  deleteGalleryImage: async (imageId: string) => {
+    const response = await api.delete(`/barbers/gallery/${imageId}`);
+    return response.data;
+  },
 };
 
 export const bookingAPI = {

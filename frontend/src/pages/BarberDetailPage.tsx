@@ -4,12 +4,16 @@ import { useQuery } from '@tanstack/react-query';
 import { barberAPI, bookingAPI } from '../lib/api';
 import { Barber, BarberService } from '../lib/types';
 import toast from 'react-hot-toast';
+import { useGeolocation } from '../hooks/useGeolocation';
+import { MapView } from '../components/MapView';
+import { MapPin, Navigation } from 'lucide-react';
 
 const BarberDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'services' | 'gallery' | 'reviews'>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const { latitude: userLat, longitude: userLng } = useGeolocation();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['barber', id],
@@ -90,21 +94,24 @@ const BarberDetailPage = () => {
       </div>
 
       {/* Bio & Specialties */}
-      <div className="container mx-auto px-4 py-8">
-        {barber.profile?.bio && (
-          <p className="text-gray-300 mb-6">{barber.profile.bio}</p>
-        )}
-        {barber.profile?.specialties && (
-          <div className="flex flex-wrap gap-2 mb-8">
-            {barber.profile.specialties.map((spec: string, i: number) => (
-              <span key={i} className="bg-dark-800 text-primary-500 px-3 py-1 rounded-full">
-                {spec}
-              </span>
-            ))}
-          </div>
-        )}
+      <div className="container mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
+        
+        {/* Main Content */}
+        <div className="flex-1">
+          {barber.profile?.bio && (
+            <p className="text-gray-300 mb-6">{barber.profile.bio}</p>
+          )}
+          {barber.profile?.specialties && (
+            <div className="flex flex-wrap gap-2 mb-8">
+              {barber.profile.specialties.map((spec: string, i: number) => (
+                <span key={i} className="bg-dark-800 text-primary-500 px-3 py-1 rounded-full text-sm">
+                  {spec}
+                </span>
+              ))}
+            </div>
+          )}
 
-        {/* Tabs */}
+          {/* Tabs */}
         <div className="flex gap-4 border-b border-dark-700 mb-8">
           <button
             onClick={() => setActiveTab('services')}
@@ -241,6 +248,45 @@ const BarberDetailPage = () => {
             )}
           </div>
         )}
+        </div>
+
+        {/* Sidebar: Location */}
+        <div className="w-full lg:w-80 space-y-4">
+          <div className="bg-dark-900 border border-dark-800 rounded-xl p-4 sticky top-24">
+            <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-primary" />
+              Ubicación
+            </h3>
+            
+            {barber.profile?.latitude && barber.profile?.longitude ? (
+              <>
+                <div className="h-48 rounded-lg overflow-hidden border border-dark-700 mb-4 relative z-0">
+                  <MapView 
+                    center={[barber.profile.latitude, barber.profile.longitude]} 
+                    zoom={15} 
+                    markers={[{ id: 'barber', lat: barber.profile.latitude, lng: barber.profile.longitude }]} 
+                  />
+                </div>
+                
+                {barber.distance !== undefined && (
+                  <p className="text-gray-400 text-sm mb-4 text-center">
+                    A {barber.distance.toFixed(1)} km de tu ubicación
+                  </p>
+                )}
+                
+                <button 
+                  onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${barber.profile?.latitude},${barber.profile?.longitude}`, '_blank')}
+                  className="w-full flex items-center justify-center gap-2 bg-dark-800 hover:bg-dark-700 text-white py-2 px-4 rounded-lg transition"
+                >
+                  <Navigation className="w-4 h-4" />
+                  Cómo llegar
+                </button>
+              </>
+            ) : (
+              <p className="text-gray-400 text-sm text-center py-4">Ubicación no disponible</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

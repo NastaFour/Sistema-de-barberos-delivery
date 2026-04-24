@@ -19,7 +19,12 @@ import BookingDetailPage from './pages/BookingDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import BarberDashboardPage from './pages/BarberDashboardPage';
-
+import { BarberLayout } from './components/layouts/BarberLayout';
+import { AgendaPage } from './pages/barber/AgendaPage';
+import { ServicesPage } from './pages/barber/ServicesPage';
+import { AvailabilityPage } from './pages/barber/AvailabilityPage';
+import { GalleryPage } from './pages/barber/GalleryPage';
+import { EarningsPage } from './pages/barber/EarningsPage';
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -157,14 +162,14 @@ function App() {
         />
 
         {/* Barber Routes */}
-        <Route
-          path="/barber-dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['BARBER']}>
-              <BarberDashboardPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/barber" element={<ProtectedRoute allowedRoles={['BARBER']}><BarberLayout /></ProtectedRoute>}>
+          <Route index element={<BarberDashboardPage />} />
+          <Route path="agenda" element={<AgendaPage />} />
+          <Route path="services" element={<ServicesPage />} />
+          <Route path="availability" element={<AvailabilityPage />} />
+          <Route path="gallery" element={<GalleryPage />} />
+          <Route path="earnings" element={<EarningsPage />} />
+        </Route>
 
         {/* 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />

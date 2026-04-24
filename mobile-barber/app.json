@@ -1,0 +1,77 @@
+{
+  "expo": {
+    "name": "BarberGo Pro",
+    "slug": "barbergo-pro",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "scheme": "barbergo",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.barbergo.pro",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ],
+        "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrar tu posición al cliente.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Necesitamos tu ubicación en segundo plano para que el cliente rastree tu llegada en tiempo real.",
+        "NSCameraUsageDescription": "Necesitamos acceso a tu cámara para fotos de servicio finalizado."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "package": "com.barbergo.pro",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "CAMERA",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permite a BarberGo Pro acceder a tu ubicación en todo momento para que el cliente rastree tu llegada."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#f59e0b"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite a BarberGo acceder a tu galería para subir fotos de reseñas."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

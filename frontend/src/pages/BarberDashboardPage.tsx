@@ -1,356 +1,219 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { useSocket } from '../hooks/useSocket';
-import { toast } from 'react-hot-toast';
-import { Calendar, Clock, Users, DollarSign, Star, MapPin, CheckCircle, XCircle, PlayCircle, Scissors, Image as ImageIcon, BarChart3 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { format } from 'date-fns';
+import React, { useState, useMemo } from 'react';
+import { useAuthStore } from '../store/authStore';
+import { useBarberBookings, useUpdateBookingStatus } from '../hooks/useBarberBookings';
+import { useBarberProfile, useUpdateBarberStatus } from '../hooks/useBarberServices';
+import { BookingActionModal } from '../components/barber/BookingActionModal';
+import { EarningsChart } from '../components/barber/EarningsChart';
+import { isSameDay, format, subDays, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-// Datos mockeados - reemplazar con llamadas API reales
-const mockBookings = [
-  { id: '1', client: 'Carlos Pérez', service: 'Corte + Barba', date: new Date(), status: 'PENDING', address: 'Av. Principal 123' },
-  { id: '2', client: 'Luis Rodríguez', service: 'Corte Clásico', date: new Date(Date.now() + 86400000), status: 'CONFIRMED', address: 'Calle 5 #45' },
-  { id: '3', client: 'Miguel Ángel', service: 'Afeitado Premium', date: new Date(Date.now() + 172800000), status: 'COMPLETED', address: 'Plaza Central' },
-];
-
-const mockServices = [
-  { id: '1', name: 'Corte Clásico', price: 15, duration: 30, active: true },
-  { id: '2', name: 'Corte + Barba', price: 25, duration: 45, active: true },
-  { id: '3', name: 'Afeitado Premium', price: 20, duration: 30, active: true },
-  { id: '4', name: 'Coloración', price: 40, duration: 90, active: false },
-];
-
-const mockStats = {
-  totalBookings: 45,
-  monthlyRevenue: 1250,
-  avgRating: 4.8,
-  newClients: 12,
-};
+import { Calendar, DollarSign, Star, Bell, Clock } from 'lucide-react';
+import { Booking } from '../lib/types';
+import { StripeConnectBanner } from '../components/StripeConnectBanner';
 
 export default function BarberDashboardPage() {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('agenda');
-  const [viewMode, setViewMode] = useState<'week' | 'day'>('week');
-  
-  const { isConnected, setBarberOnline, setBarberOffline, joinBarberRoom, onNewBooking } = useSocket();
+  const { user } = useAuthStore();
+  const barberId = user?.id || '';
 
-  useEffect(() => {
-    if (user?.id && isConnected) {
-      joinBarberRoom(user.id);
-      setBarberOnline(user.id);
+  // Hooks
+  const { data: profileResponse, isLoading: isLoadingProfile } = useBarberProfile(barberId);
+  const { data: bookingsResponse, isLoading: isLoadingBookings } = useBarberBookings();
+  const { mutate: updateStatus, isPending: isUpdatingStatus } = useUpdateBookingStatus();
+  const { mutate: updateBarberStatus, isPending: isUpdatingProfile } = useUpdateBarberStatus();
 
-      const cleanup = onNewBooking((data) => {
-        toast.success(`¡Nueva reserva recibida de ${data.clientName || 'un cliente'}!`);
-      });
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-      return () => {
-        setBarberOffline(user.id);
-        if (cleanup) cleanup();
-      };
+  // Data processing
+  const profile = profileResponse?.data;
+  const bookings: Booking[] = bookingsResponse?.data || [];
+
+  const todayBookings = useMemo(() => {
+    return bookings.filter(b => isSameDay(new Date(b.scheduledAt), new Date()));
+  }, [bookings]);
+
+  const weeklyEarnings = useMemo(() => {
+    const sevenDaysAgo = subDays(new Date(), 7);
+    return bookings
+      .filter(b => b.status === 'COMPLETED' && isAfter(new Date(b.scheduledAt), sevenDaysAgo))
+      .reduce((sum, b) => sum + (b.services?.reduce((s, bs) => s + bs.price, 0) || 0), 0);
+  }, [bookings]);
+
+  const nextBooking = useMemo(() => {
+    return bookings
+      .filter(b => (b.status === 'PENDING' || b.status === 'CONFIRMED') && isAfter(new Date(b.scheduledAt), new Date()))
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
+  }, [bookings]);
+
+  const handleOpenModal = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setIsModalOpen(true);
+  };
+
+  const handleUpdateStatus = (bookingId: string, status: string) => {
+    updateStatus({ id: bookingId, status }, {
+      onSuccess: () => setIsModalOpen(false)
+    });
+  };
+
+  const toggleAvailability = () => {
+    if (profile) {
+      updateBarberStatus({ barberId, isActive: !profile.isActive });
     }
-  }, [user, isConnected]);
-
-  const handleStatusChange = (bookingId: string, newStatus: string) => {
-    console.log(`Actualizando booking ${bookingId} a ${newStatus}`);
-    toast.success(`Reserva actualizada a ${newStatus}`);
-    // Aquí iría la llamada API real
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline' | 'default'> = {
-      PENDING: 'secondary',
-      CONFIRMED: 'default',
-      IN_PROGRESS: 'outline',
-      COMPLETED: 'default',
-      CANCELLED: 'destructive',
-    };
-    const icons: Record<string, React.ReactNode> = {
-      PENDING: <Clock className="w-3 h-3 mr-1" />,
-      CONFIRMED: <CheckCircle className="w-3 h-3 mr-1" />,
-      IN_PROGRESS: <PlayCircle className="w-3 h-3 mr-1" />,
-      COMPLETED: <CheckCircle className="w-3 h-3 mr-1" />,
-      CANCELLED: <XCircle className="w-3 h-3 mr-1" />,
-    };
+  if (isLoadingProfile || isLoadingBookings) {
     return (
-      <Badge variant={variants[status] || 'default'}>
-        {icons[status]}
-        {status}
-      </Badge>
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
     );
-  };
-
-  const renderAgenda = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Agenda de Citas</h3>
-        <div className="flex gap-2">
-          <Button
-            variant={viewMode === 'week' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('week')}
-          >
-            Semana
-          </Button>
-          <Button
-            variant={viewMode === 'day' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('day')}
-          >
-            Día
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-4">
-        {mockBookings.map((booking) => (
-          <Card key={booking.id}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Avatar>
-                      <AvatarFallback>{booking.client.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{booking.client}</p>
-                      <p className="text-sm text-muted-foreground">{booking.service}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      {format(booking.date, 'dd MMM yyyy', { locale: es })}
-                    </span>
-                    <span className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      {format(booking.date, 'HH:mm', { locale: es })}
-                    </span>
-                    <span className="flex items-center">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      {booking.address}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  {getStatusBadge(booking.status)}
-                  <div className="flex gap-2">
-                    {booking.status === 'PENDING' && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() => handleStatusChange(booking.id, 'CONFIRMED')}
-                        >
-                          Confirmar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleStatusChange(booking.id, 'CANCELLED')}
-                        >
-                          Cancelar
-                        </Button>
-                      </>
-                    )}
-                    {booking.status === 'CONFIRMED' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleStatusChange(booking.id, 'IN_PROGRESS')}
-                      >
-                        Iniciar
-                      </Button>
-                    )}
-                    {booking.status === 'IN_PROGRESS' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleStatusChange(booking.id, 'COMPLETED')}
-                      >
-                        Completar
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderServices = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Mis Servicios</h3>
-        <Button>Agregar Servicio</Button>
-      </div>
-
-      <div className="grid gap-4">
-        {mockServices.map((service) => (
-          <Card key={service.id}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{service.name}</p>
-                    {!service.active && (
-                      <Badge variant="secondary">Inactivo</Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {service.duration} min - ${service.price}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline">Editar</Button>
-                  <Button size="sm" variant={service.active ? 'destructive' : 'default'}>
-                    {service.active ? 'Desactivar' : 'Activar'}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderGallery = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Mi Galería</h3>
-        <Button>Subir Imágenes</Button>
-      </div>
-
-      <Card>
-        <CardContent className="p-8">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                <ImageIcon className="w-8 h-8 text-muted-foreground" />
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-muted-foreground mt-4">
-            Arrastra y suelta imágenes para reordenar
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderStats = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Reservas este mes</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockStats.totalBookings}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos mensuales</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${mockStats.monthlyRevenue}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Rating promedio</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockStats.avgRating}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Clientes nuevos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+{mockStats.newClients}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Rendimiento Semanal</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            <BarChart3 className="w-12 h-12 mr-2" />
-            Gráfico de reservas por día (implementar con recharts)
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <header className="border-b sticky top-0 z-50 bg-background">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Scissors className="w-8 h-8" />
-            <div>
-              <h1 className="text-2xl font-bold">BarberGo Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Panel de control para barberos</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative">
-              🔔
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </Button>
-            <Avatar>
-              <AvatarFallback>{user?.name?.charAt(0) || 'B'}</AvatarFallback>
-            </Avatar>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Hola, {user?.name}</h1>
+          <p className="text-gray-400 mt-1">Aquí tienes el resumen de tu barbería hoy.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <button className="p-2 bg-dark-800 rounded-full text-gray-400 hover:text-white relative">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+          </button>
+          
+          <div className="flex items-center gap-2 bg-dark-800 p-1 pl-4 rounded-full">
+            <span className="text-sm font-medium text-gray-300">Disponible</span>
+            <label className="relative inline-flex items-center cursor-pointer ml-2">
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={profile?.isActive ?? false}
+                onChange={toggleAvailability}
+                disabled={isUpdatingProfile}
+              />
+              <div className="w-11 h-6 bg-dark-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="agenda" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Agenda</span>
-            </TabsTrigger>
-            <TabsTrigger value="services" className="flex items-center gap-2">
-              <Scissors className="w-4 h-4" />
-              <span className="hidden sm:inline">Servicios</span>
-            </TabsTrigger>
-            <TabsTrigger value="gallery" className="flex items-center gap-2">
-              <ImageIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Galería</span>
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Estadísticas</span>
-            </TabsTrigger>
-          </TabsList>
+      {/* Stripe Connect Onboarding Banner */}
+      <StripeConnectBanner />
 
-          <TabsContent value="agenda">{renderAgenda()}</TabsContent>
-          <TabsContent value="services">{renderServices()}</TabsContent>
-          <TabsContent value="gallery">{renderGallery()}</TabsContent>
-          <TabsContent value="stats">{renderStats()}</TabsContent>
-        </Tabs>
-      </main>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-dark-900 border border-dark-800 p-5 rounded-xl">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Reservas Hoy</p>
+              <h3 className="text-2xl font-bold text-white mt-1">{todayBookings.length}</h3>
+            </div>
+            <div className="p-2 bg-primary/20 text-primary rounded-lg">
+              <Calendar className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-dark-900 border border-dark-800 p-5 rounded-xl">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Ingresos (7 días)</p>
+              <h3 className="text-2xl font-bold text-green-400 mt-1">${weeklyEarnings.toFixed(2)}</h3>
+            </div>
+            <div className="p-2 bg-green-500/20 text-green-500 rounded-lg">
+              <DollarSign className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-dark-900 border border-dark-800 p-5 rounded-xl">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Rating Promedio</p>
+              <h3 className="text-2xl font-bold text-yellow-400 mt-1">{profile?.rating?.toFixed(1) || '0.0'}</h3>
+            </div>
+            <div className="p-2 bg-yellow-500/20 text-yellow-500 rounded-lg">
+              <Star className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-dark-900 border border-dark-800 p-5 rounded-xl">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Próxima Cita</p>
+              <h3 className="text-sm font-bold text-white mt-1 truncate">
+                {nextBooking ? format(new Date(nextBooking.scheduledAt), 'HH:mm - d MMM', { locale: es }) : 'Ninguna'}
+              </h3>
+            </div>
+            <div className="p-2 bg-orange-500/20 text-orange-500 rounded-lg">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Próximas reservas */}
+        <div className="lg:col-span-2 space-y-4">
+          <h2 className="text-xl font-bold text-white">Próximas Reservas</h2>
+          {bookings
+            .filter(b => b.status === 'PENDING' || b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS')
+            .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+            .slice(0, 5)
+            .map(booking => {
+              const statusColors = {
+                PENDING: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50',
+                CONFIRMED: 'bg-blue-500/20 text-blue-500 border-blue-500/50',
+                IN_PROGRESS: 'bg-orange-500/20 text-orange-500 border-orange-500/50',
+                COMPLETED: 'bg-green-500/20 text-green-500 border-green-500/50',
+                CANCELLED: 'bg-red-500/20 text-red-500 border-red-500/50',
+              };
+              
+              return (
+                <div key={booking.id} className="bg-dark-900 border border-dark-800 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="font-bold text-white">{booking.client?.name}</p>
+                    <p className="text-sm text-gray-400 capitalize">{format(new Date(booking.scheduledAt), "EEEE d 'de' MMMM, HH:mm", { locale: es })}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className={`px-2 py-1 rounded text-xs border font-medium ${statusColors[booking.status as keyof typeof statusColors] || statusColors.PENDING}`}>
+                      {booking.status}
+                    </span>
+                    <button 
+                      onClick={() => handleOpenModal(booking)}
+                      className="px-4 py-2 bg-dark-800 text-white rounded hover:bg-dark-700 transition text-sm font-medium"
+                    >
+                      Ver detalle
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          {bookings.length === 0 && (
+            <div className="text-center py-8 bg-dark-900 border border-dark-800 rounded-xl">
+              <p className="text-gray-400">No tienes reservas pendientes.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Gráfico */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-white">Ingresos</h2>
+          <EarningsChart />
+        </div>
+      </div>
+
+      {/* Modal */}
+      <BookingActionModal 
+        booking={selectedBooking} 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onUpdateStatus={handleUpdateStatus}
+        isUpdating={isUpdatingStatus}
+      />
     </div>
   );
 }

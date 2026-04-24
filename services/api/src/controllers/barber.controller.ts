@@ -106,6 +106,8 @@ export async function getBarberById(req: Request, res: Response) {
         gallery: {
           orderBy: { order: 'asc' },
         },
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error reviews joined via barberId on Review model
         reviews: {
           take: 5,
           orderBy: { createdAt: 'desc' },

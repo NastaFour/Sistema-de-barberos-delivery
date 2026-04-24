@@ -1,42 +1,38 @@
 version: '3.8'
 
 services:
+  # Base de Datos PostgreSQL
   db:
     image: postgres:15-alpine
+    container_name: barbergo-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-barbergo}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: barbergo
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  backend:
+  # Backend Node.js
+  api:
     build:
       context: ./services/api
-    ports:
-      - "3001:3001"
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-barbergo}?schema=public
-      - JWT_SECRET=${JWT_SECRET:-super_secret_jwt_key_for_development_only}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-super_secret_refresh_key_for_development_only}
-      - FRONTEND_URL=http://localhost:80
-      - NODE_ENV=production
+      dockerfile: Dockerfile
+    container_name: barbergo-api
     depends_on:
       - db
-    restart: unless-stopped
-    command: >
-      sh -c "npx prisma migrate deploy && npm start"
-
-  frontend:
-    build:
-      context: ./frontend
+    environment:
+      - DATABASE_URL=postgresql://postgres:mysecretpassword@db:5432/barbergo?schema=public
+      - JWT_SECRET=tu_jwt_secret_super_seguro
+      - PORT=3001
+      # Reemplaza estas variables en tu entorno de producción
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_PLATFORM_FEE_PERCENT=10
     ports:
-      - "80:80"
-    depends_on:
-      - backend
+      - "3001:3001"
     restart: unless-stopped
 
 volumes:

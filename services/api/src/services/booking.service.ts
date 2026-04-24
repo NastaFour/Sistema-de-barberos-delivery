@@ -26,6 +26,12 @@ interface GetMyBookingsDTO {
 export async function createBooking(data: CreateBookingDTO) {
   const { clientId, barberId, scheduledAt, serviceIds, address, latitude, longitude, notes } = data;
 
+  // Fetch barber to check Stripe status
+  const barber = await prisma.barberProfile.findUnique({ where: { id: barberId } });
+  if (!barber || barber.stripeAccountStatus !== 'active') {
+    throw new Error('Este barbero no está configurado para recibir pagos');
+  }
+
   // Validar que la fecha sea al menos 2 horas en el futuro
   const now = new Date();
   const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
@@ -65,7 +71,7 @@ export async function createBooking(data: CreateBookingDTO) {
       data: {
         clientId,
         barberId,
-        status: 'PENDING',
+        status: 'PENDING_PAYMENT',
         address,
         latitude,
         longitude,

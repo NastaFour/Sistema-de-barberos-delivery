@@ -18,12 +18,21 @@ enum UserRole {
 }
 
 enum BookingStatus {
+  PENDING_PAYMENT
   PENDING
   CONFIRMED
   IN_PROGRESS
   COMPLETED
   CANCELLED
   NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
 
 // Main user model
@@ -40,7 +49,6 @@ model User {
 
   // Relations
   clientBookings   Booking[]   @relation("ClientBookings")
-  barberBookings   Booking[]   @relation("BarberBookings")
   barberProfile    BarberProfile?
   reviewsGiven     Review[]    @relation("ReviewGiven")
   reviewsReceived  Review[]    @relation("ReviewReceived")
@@ -71,12 +79,16 @@ model BarberProfile {
   // Availability
   availability    Json?    // { monday: {start: "09:00", end: "18:00"}, ... }
   
+  // Stripe Connect
+  stripeAccountId     String?  @unique
+  stripeAccountStatus String?  @default("pending") // pending, active, rejected
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   // Relations
   services    BarberService[]
-  bookings    Booking[]
+  bookings    Booking[]     @relation("BarberBookings")
   gallery     BarberGallery[]
 
   @@index([userId])
@@ -134,6 +146,7 @@ model Booking {
   // Relations
   services BookingService[]
   review   Review?
+  payment  Payment?
 
   @@index([clientId])
   @@index([barberId])
@@ -202,4 +215,21 @@ model Notification {
 
   @@index([userId])
   @@index([isRead])
+}
+
+// Stripe payments
+model Payment {
+  id                    String        @id @default(cuid())
+  bookingId             String        @unique
+  booking               Booking       @relation(fields: [bookingId], references: [id])
+  stripePaymentIntentId String        @unique
+  amount                Int           // centavos
+  platformFee           Int           // centavos
+  barberAmount          Int           // centavos
+  status                PaymentStatus @default(PENDING)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
 }

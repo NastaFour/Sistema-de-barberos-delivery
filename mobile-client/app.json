@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "BarberGo Client",
+    "slug": "barbergo-client",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "scheme": "barbergo",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.barbergo.client",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarte barberos cercanos.",
+        "NSLocationAlwaysUsageDescription": "Necesitamos tu ubicación para mostrarte barberos cercanos.",
+        "NSCameraUsageDescription": "Necesitamos acceso a tu cámara para subir fotos de reseñas.",
+        "NSPhotoLibraryUsageDescription": "Necesitamos acceso a tu galería para subir fotos de reseñas."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "package": "com.barbergo.client",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permite a BarberGo acceder a tu ubicación para mostrarte barberos cercanos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#f59e0b"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite a BarberGo acceder a tu galería para subir fotos de reseñas."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

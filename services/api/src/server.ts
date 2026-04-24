@@ -11,6 +11,7 @@ import userRoutes from './routes/user.routes';
 import barberRoutes from './routes/barber.routes';
 import bookingRoutes from './routes/booking.routes';
 import reviewRoutes from './routes/review.routes';
+import paymentRoutes from './routes/payment.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { config } from './config/env';
 import { setupSocketEvents } from './services/socket.service';
@@ -45,6 +46,12 @@ app.use(cors({
   origin: config.FRONTEND_URL,
   credentials: true,
 }));
+// Raw body for Stripe webhooks (must come BEFORE express.json())
+app.use(
+  '/api/payments/webhook',
+  express.raw({ type: 'application/json' })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -69,6 +76,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/barbers', barberRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
