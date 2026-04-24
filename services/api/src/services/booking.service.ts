@@ -1,4 +1,5 @@
 import prisma from '../config/db';
+import { Prisma } from '@prisma/client';
 import { getSocket } from './socket.service';
 import { isSlotAvailable, getAvailableSlots as getSlots } from './availability.service';
 import { NotificationService } from './notification.service';
@@ -59,7 +60,7 @@ export async function createBooking(data: CreateBookingDTO) {
   const total = subtotal + serviceFee;
 
   // Crear reserva en transacción
-  const booking = await prisma.$transaction(async (tx: any) => {
+  const booking = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const newBooking = await tx.booking.create({
       data: {
         clientId,

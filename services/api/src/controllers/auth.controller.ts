@@ -41,7 +41,11 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
 export async function refreshToken(req: Request, res: Response, next: NextFunction) {
   try {
-    const { refreshToken: refresh_token } = req.body;
+    const refresh_token = req.cookies?.refreshToken || req.body.refreshToken;
+
+    if (!refresh_token) {
+      return res.status(401).json(errorResponse('Refresh token missing'));
+    }
 
     const result = await authService.refreshTokens(refresh_token);
 

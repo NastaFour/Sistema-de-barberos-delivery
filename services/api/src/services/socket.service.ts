@@ -64,7 +64,7 @@ export function setupSocketEvents(io: Server) {
           );
 
           // Emitir solicitud a cada barbero cercano
-          nearbyBarbers.forEach((barber: any) => {
+          nearbyBarbers.forEach((barber: { userId: string }) => {
             io.to(`barber:${barber.userId}`).emit('booking:new', {
               bookingId: `temp_${Date.now()}`,
               client: {
@@ -93,6 +93,13 @@ export function setupSocketEvents(io: Server) {
     socket.on(
       'booking:accept',
       async ({ bookingId, barberId }: { bookingId: string; barberId: string }) => {
+        // Verificar autenticidad del barbero
+        const connectedBarberId = activeBarbers.get(socket.id);
+        if (connectedBarberId !== barberId) {
+          socket.emit('booking:error', { message: 'No autorizado para aceptar esta reserva' });
+          return;
+        }
+
         // Notificar al cliente que el barbero aceptó
         socket.emit('booking:accepted', {
           bookingId,
@@ -202,7 +209,7 @@ async function findNearbyAvailableBarbers(
   });
 
   // Filtrar por distancia usando Haversine
-  return barbers.filter((barber: any) => {
+  return barbers.filter((barber: { latitude: number | null, longitude: number | null }) => {
     if (!barber.latitude || !barber.longitude) return false;
     const distance = calculateDistance(
       { lat, lng },

@@ -53,7 +53,7 @@ app.set('io', io);
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per IP
+  max: 300, // Increased for a better UX on map/slots usage
   message: {
     success: false,
     message: 'Too many requests, please try again later',

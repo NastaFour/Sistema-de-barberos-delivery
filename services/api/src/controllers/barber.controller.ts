@@ -21,7 +21,7 @@ export async function getBarbers(req: Request, res: Response) {
       // Filtrar por especialidad si se proporciona
       let filteredBarbers = barbers;
       if (specialty) {
-        filteredBarbers = barbers.filter((barber: any) =>
+        filteredBarbers = barbers.filter((barber) =>
           barber.specialty?.some((s: string) =>
             s.toLowerCase().includes((specialty as string).toLowerCase())
           )
@@ -31,7 +31,7 @@ export async function getBarbers(req: Request, res: Response) {
       // Filtrar por rating mínimo
       if (minRating) {
         filteredBarbers = filteredBarbers.filter(
-          (barber: any) => barber.rating >= parseFloat(minRating as string)
+          (barber) => barber.rating >= parseFloat(minRating as string)
         );
       }
 

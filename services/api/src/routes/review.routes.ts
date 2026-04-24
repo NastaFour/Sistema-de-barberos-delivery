@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import prisma from '../config/db';
+import { Prisma } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import rateLimit from 'express-rate-limit';
 
@@ -74,7 +75,7 @@ router.post('/', authenticate, reviewLimiter, async (req: AuthRequest, res) => {
     }
 
     // Create review and update rating in transaction
-    const review = await prisma.$transaction(async (tx: any) => {
+    const review = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newReview = await tx.review.create({
         data: {
           bookingId,
