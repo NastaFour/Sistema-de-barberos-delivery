@@ -108,7 +108,7 @@ router.post('/', authenticate, reviewLimiter, async (req: AuthRequest, res) => {
       });
 
       const totalReviews = existingReviews.length;
-      const averageRating = existingReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / totalReviews;
+      const averageRating = existingReviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / totalReviews;
 
       await tx.barberProfile.update({
         where: { id: booking.barber.id },

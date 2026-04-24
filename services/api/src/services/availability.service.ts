@@ -104,7 +104,7 @@ export async function getAvailableSlots(
   
   for (const booking of existingBookings) {
     const totalDuration = booking.services.reduce(
-      (sum: number, bs: any) => sum + bs.service.duration,
+      (sum: number, bs: { service: { duration: number } }) => sum + bs.service.duration,
       0
     );
     
@@ -215,7 +215,7 @@ export async function isSlotAvailable(
     return { available: false };
   }
 
-  const totalDuration = services.reduce((sum: number, s: any) => sum + s.duration, 0);
+  const totalDuration = services.reduce((sum: number, s: { duration: number }) => sum + s.duration, 0);
   const scheduledTime = new Date(scheduledAt);
   const endTime = new Date(scheduledTime.getTime() + totalDuration * 60000);
   const bufferedEnd = new Date(endTime.getTime() + bufferMinutes * 60000);
@@ -236,7 +236,7 @@ export async function isSlotAvailable(
   });
 
   for (const booking of existingBookings) {
-    const bookingDuration = booking.services.reduce((sum: number, bs: any) => sum + bs.service.duration, 0);
+    const bookingDuration = booking.services.reduce((sum: number, bs: { service: { duration: number } }) => sum + bs.service.duration, 0);
     const bookingStart = booking.scheduledAt;
     const bookingEnd = new Date(bookingStart.getTime() + bookingDuration * 60000);
     const bookingBufferedEnd = new Date(bookingEnd.getTime() + bufferMinutes * 60000);

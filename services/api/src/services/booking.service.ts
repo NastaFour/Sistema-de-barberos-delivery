@@ -47,7 +47,7 @@ export async function createBooking(data: CreateBookingDTO) {
   }
 
   // Calcular duración total y verificar disponibilidad
-  const totalDuration = services.reduce((sum: number, s: any) => sum + s.duration, 0);
+  const totalDuration = services.reduce((sum: number, s: { duration: number }) => sum + s.duration, 0);
   
   const { available } = await isSlotAvailable(barberId, scheduledAt, serviceIds, 15);
   if (!available) {
@@ -55,7 +55,7 @@ export async function createBooking(data: CreateBookingDTO) {
   }
 
   // Calcular precios
-  const subtotal = services.reduce((sum: number, s: any) => sum + s.price, 0);
+  const subtotal = services.reduce((sum: number, s: { price: number }) => sum + s.price, 0);
   const serviceFee = subtotal * 0.05; // 5% comisión
   const total = subtotal + serviceFee;
 
@@ -75,7 +75,7 @@ export async function createBooking(data: CreateBookingDTO) {
         serviceFee,
         total,
         services: {
-          create: services.map((service: any) => ({
+          create: services.map((service: { id: string, price: number }) => ({
             serviceId: service.id,
             quantity: 1,
             price: service.price,
