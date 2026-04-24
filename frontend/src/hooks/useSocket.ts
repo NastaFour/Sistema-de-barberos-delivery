@@ -50,7 +50,19 @@ export const useSocket = () => {
 
   const leaveRoom = (room: string) => {
     if (socket) {
-      socket.leave(room);
+      socket.emit('leave_room', room); // or standard socket.leave if backend supports it but socket.leave is backend only, client doesn't have it natively for rooms
+    }
+  };
+
+  const setBarberOnline = (barberId: string) => {
+    if (socket) {
+      socket.emit('barber:online', { barberId });
+    }
+  };
+
+  const setBarberOffline = (barberId: string) => {
+    if (socket) {
+      socket.emit('barber:offline', { barberId });
     }
   };
 
@@ -90,5 +102,7 @@ export const useSocket = () => {
     onBookingUpdate,
     onNewBooking,
     onBookingCancelled,
+    setBarberOnline,
+    setBarberOffline,
   };
 };

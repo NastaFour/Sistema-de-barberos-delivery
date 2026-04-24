@@ -1,11 +1,21 @@
 import { Router } from 'express';
 import prisma from '../config/db';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import rateLimit from 'express-rate-limit';
+
+const reviewLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  message: {
+    success: false,
+    message: 'Too many reviews, please try again later',
+  },
+});
 
 const router = Router();
 
 // Create review for completed booking
-router.post('/', authenticate, async (req: AuthRequest, res) => {
+router.post('/', authenticate, reviewLimiter, async (req: AuthRequest, res) => {
   try {
     const { bookingId, rating, comment, images = [] } = req.body;
 
@@ -63,48 +73,51 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       });
     }
 
-    // Create review
-    const review = await prisma.review.create({
-      data: {
-        bookingId,
-        clientId,
-        barberId: booking.barber.userId,
-        rating,
-        comment,
-        images
-      },
-      include: {
-        client: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
+    // Create review and update rating in transaction
+    const review = await prisma.$transaction(async (tx: any) => {
+      const newReview = await tx.review.create({
+        data: {
+          bookingId,
+          clientId,
+          barberId: booking.barber.userId,
+          rating,
+          comment,
+          images
         },
-        booking: {
-          select: {
-            id: true,
-            scheduledAt: true
+        include: {
+          client: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true
+            }
+          },
+          booking: {
+            select: {
+              id: true,
+              scheduledAt: true
+            }
           }
         }
-      }
-    });
+      });
 
-    // Update barber rating
-    const existingReviews = await prisma.review.findMany({
-      where: { barberId: booking.barber.userId },
-      select: { rating: true }
-    });
+      const existingReviews = await tx.review.findMany({
+        where: { barberId: booking.barber.userId },
+        select: { rating: true }
+      });
 
-    const totalReviews = existingReviews.length;
-    const averageRating = existingReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews;
+      const totalReviews = existingReviews.length;
+      const averageRating = existingReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / totalReviews;
 
-    await prisma.barberProfile.update({
-      where: { id: booking.barber.id },
-      data: {
-        rating: averageRating,
-        totalReviews: totalReviews
-      }
+      await tx.barberProfile.update({
+        where: { id: booking.barber.id },
+        data: {
+          rating: averageRating,
+          totalReviews: totalReviews
+        }
+      });
+
+      return newReview;
     });
 
     res.status(201).json({

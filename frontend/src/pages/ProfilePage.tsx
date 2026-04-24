@@ -12,7 +12,7 @@ const ProfilePage = () => {
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    bio: user?.profile?.bio || '',
+    bio: user?.barberProfile?.bio || '',
   });
 
   const updateProfileMutation = useMutation({

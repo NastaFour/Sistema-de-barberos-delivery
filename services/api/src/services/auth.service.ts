@@ -33,7 +33,7 @@ export async function registerUser(data: RegisterInput) {
   const hashedPassword = await hashPassword(data.password);
 
   // Create user in transaction
-  const user = await prisma.$transaction(async (tx) => {
+  const user = await prisma.$transaction(async (tx: any) => {
     const newUser = await tx.user.create({
       data: {
         email: sanitizedEmail,

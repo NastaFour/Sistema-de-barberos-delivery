@@ -1,3 +1,10 @@
+export interface Barber extends User {
+  profile?: BarberProfile;
+  distance?: number;
+  services?: BarberService[];
+  reviews?: any[];
+}
+
 export interface User {
   id: string;
   email: string;
@@ -24,7 +31,10 @@ export interface BarberProfile {
   serviceRadius: number;
   user: User;
   services: BarberService[];
-  gallery: BarberGallery[];
+  gallery: string[];
+  experience?: number;
+  specialties?: string[];
+  avatar?: string;
 }
 
 export interface BarberService {

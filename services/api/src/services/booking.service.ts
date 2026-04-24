@@ -1,6 +1,7 @@
 import prisma from '../config/db';
 import { getSocket } from './socket.service';
 import { isSlotAvailable, getAvailableSlots as getSlots } from './availability.service';
+import { NotificationService } from './notification.service';
 
 interface CreateBookingDTO {
   clientId: string;
@@ -45,7 +46,7 @@ export async function createBooking(data: CreateBookingDTO) {
   }
 
   // Calcular duración total y verificar disponibilidad
-  const totalDuration = services.reduce((sum, s) => sum + s.duration, 0);
+  const totalDuration = services.reduce((sum: number, s: any) => sum + s.duration, 0);
   
   const { available } = await isSlotAvailable(barberId, scheduledAt, serviceIds, 15);
   if (!available) {
@@ -53,12 +54,12 @@ export async function createBooking(data: CreateBookingDTO) {
   }
 
   // Calcular precios
-  const subtotal = services.reduce((sum, s) => sum + s.price, 0);
+  const subtotal = services.reduce((sum: number, s: any) => sum + s.price, 0);
   const serviceFee = subtotal * 0.05; // 5% comisión
   const total = subtotal + serviceFee;
 
   // Crear reserva en transacción
-  const booking = await prisma.$transaction(async (tx) => {
+  const booking = await prisma.$transaction(async (tx: any) => {
     const newBooking = await tx.booking.create({
       data: {
         clientId,
@@ -73,7 +74,7 @@ export async function createBooking(data: CreateBookingDTO) {
         serviceFee,
         total,
         services: {
-          create: services.map((service) => ({
+          create: services.map((service: any) => ({
             serviceId: service.id,
             quantity: 1,
             price: service.price,
@@ -120,6 +121,18 @@ export async function createBooking(data: CreateBookingDTO) {
       clientName: booking.client.name,
       scheduledAt: booking.scheduledAt,
     });
+  }
+
+  // Notificar via Push Notification
+  try {
+    await NotificationService.notifyBarberNewBooking(
+      booking.barber.userId, 
+      booking.client.name, 
+      booking.scheduledAt, 
+      booking.id
+    );
+  } catch (error) {
+    console.error('No se pudo enviar la push notification:', error);
   }
 
   return booking;
@@ -327,6 +340,17 @@ export async function updateBookingStatus(
       status: updatedBooking.status,
       updatedAt: updatedBooking.updatedAt,
     });
+  }
+
+  // Notificar via Push Notification al cliente
+  try {
+    await NotificationService.notifyClientBookingStatus(
+      updatedBooking.clientId,
+      updatedBooking.status,
+      bookingId
+    );
+  } catch (error) {
+    console.error('No se pudo enviar la push notification al cliente:', error);
   }
 
   return updatedBooking;

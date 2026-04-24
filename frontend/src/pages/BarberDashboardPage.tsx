@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useSocket } from '../hooks/useSocket';
+import { toast } from 'react-hot-toast';
 import { Calendar, Clock, Users, DollarSign, Star, MapPin, CheckCircle, XCircle, PlayCircle, Scissors, Image as ImageIcon, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,9 +36,28 @@ export default function BarberDashboardPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('agenda');
   const [viewMode, setViewMode] = useState<'week' | 'day'>('week');
+  
+  const { isConnected, setBarberOnline, setBarberOffline, joinBarberRoom, onNewBooking } = useSocket();
+
+  useEffect(() => {
+    if (user?.id && isConnected) {
+      joinBarberRoom(user.id);
+      setBarberOnline(user.id);
+
+      const cleanup = onNewBooking((data) => {
+        toast.success(`¡Nueva reserva recibida de ${data.clientName || 'un cliente'}!`);
+      });
+
+      return () => {
+        setBarberOffline(user.id);
+        if (cleanup) cleanup();
+      };
+    }
+  }, [user, isConnected]);
 
   const handleStatusChange = (bookingId: string, newStatus: string) => {
     console.log(`Actualizando booking ${bookingId} a ${newStatus}`);
+    toast.success(`Reserva actualizada a ${newStatus}`);
     // Aquí iría la llamada API real
   };
 

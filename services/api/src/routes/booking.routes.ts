@@ -3,6 +3,16 @@ import * as bookingController from '../controllers/booking.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { validateRequest } from '../middleware/validate.middleware';
 import { createBookingSchema, updateStatusSchema } from '../schemas/booking.schema';
+import rateLimit from 'express-rate-limit';
+
+const bookingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // max 20 bookings per 15 min per IP
+  message: {
+    success: false,
+    message: 'Too many booking requests, please try again later',
+  },
+});
 
 const router = Router();
 
@@ -10,6 +20,7 @@ const router = Router();
 router.post(
   '/',
   authenticate,
+  bookingLimiter,
   validateRequest(createBookingSchema),
   bookingController.createBooking
 );

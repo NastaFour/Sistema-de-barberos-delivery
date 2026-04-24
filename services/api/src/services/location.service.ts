@@ -41,20 +41,7 @@ export async function findNearbyBarbers(
 
   // Query optimizado usando SQL crudo con Haversine
   const barbers = await prisma.$queryRaw`
-    SELECT 
-      b.id,
-      b."userId",
-      b.bio,
-      b.specialty,
-      b.latitude,
-      b.longitude,
-      b."rating",
-      b."totalReviews",
-      b."yearsExperience",
-      u.name,
-      u.email,
-      u.avatar,
-      distance
+    SELECT *
     FROM (
       SELECT 
         bp.*,
@@ -72,10 +59,10 @@ export async function findNearbyBarbers(
         ) AS distance
       FROM "BarberProfile" bp
       INNER JOIN "User" u ON bp."userId" = u.id
-      WHERE bp."isActive" = true
-      HAVING distance <= ${radiusKm}
+      WHERE bp."isActive" = true AND bp.latitude IS NOT NULL AND bp.longitude IS NOT NULL
     ) b
-    ORDER BY distance ASC
+    WHERE b.distance <= ${radiusKm}
+    ORDER BY b.distance ASC
     LIMIT ${limit}
   `;
 

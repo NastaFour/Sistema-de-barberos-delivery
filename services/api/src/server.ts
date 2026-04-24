@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -11,7 +13,7 @@ import bookingRoutes from './routes/booking.routes';
 import reviewRoutes from './routes/review.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { config } from './config/env';
-
+import { setupSocketEvents } from './services/socket.service';
 dotenv.config();
 
 const app = express();
@@ -37,6 +39,8 @@ const authLimiter = rateLimit({
 });
 
 // Middleware
+app.use(helmet());
+app.use(cookieParser());
 app.use(cors({
   origin: config.FRONTEND_URL,
   credentials: true,
@@ -47,7 +51,19 @@ app.use(express.urlencoded({ extended: true }));
 // Make io accessible to routes
 app.set('io', io);
 
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per IP
+  message: {
+    success: false,
+    message: 'Too many requests, please try again later',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Routes
+app.use('/api', generalLimiter);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/barbers', barberRoutes);
@@ -63,23 +79,7 @@ app.get('/health', (req, res) => {
 app.use(errorHandler);
 
 // Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
-
-  socket.on('join_booking', (bookingId: string) => {
-    socket.join(`booking:${bookingId}`);
-    console.log(`Client ${socket.id} joined booking room: ${bookingId}`);
-  });
-
-  socket.on('join_barber', (barberId: string) => {
-    socket.join(`barber:${barberId}`);
-    console.log(`Client ${socket.id} joined barber room: ${barberId}`);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
-});
+setupSocketEvents(io);
 
 httpServer.listen(config.PORT, () => {
   console.log(`🚀 Server running on port ${config.PORT}`);

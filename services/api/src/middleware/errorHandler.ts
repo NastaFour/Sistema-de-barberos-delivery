@@ -23,7 +23,7 @@ export function errorHandler(
   }
 
   // Prisma unique constraint violation
-  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+  if (err && typeof err === 'object' && 'code' in err) {
     if (err.code === 'P2002') {
       return res.status(409).json({
         success: false,

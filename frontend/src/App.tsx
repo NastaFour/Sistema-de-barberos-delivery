@@ -18,6 +18,7 @@ import MyBookingsPage from './pages/MyBookingsPage';
 import BookingDetailPage from './pages/BookingDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import BarberDashboardPage from './pages/BarberDashboardPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) => {
@@ -151,6 +152,16 @@ function App() {
               <DashboardLayout>
                 <AdminDashboardPage />
               </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Barber Routes */}
+        <Route
+          path="/barber-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['BARBER']}>
+              <BarberDashboardPage />
             </ProtectedRoute>
           }
         />

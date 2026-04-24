@@ -1,5 +1,5 @@
-import { prisma } from '../config/db';
-import { BookingStatus } from '@prisma/client';
+import prisma from '../config/db';
+
 
 interface AvailabilityDay {
   start: string; // "09:00"
@@ -16,7 +16,7 @@ interface WeeklyAvailability {
   sunday?: AvailabilityDay | null;
 }
 
-const dayMap: Record<string, keyof WeeklyAvailability> = {
+const dayMap: Record<string, string> = {
   '0': 'sunday',
   '1': 'monday',
   '2': 'tuesday',
@@ -46,7 +46,7 @@ export async function getAvailableSlots(
   }
 
   const availability = barberProfile.availability as WeeklyAvailability;
-  const daySchedule = availability[dayOfWeek];
+  const daySchedule = availability[dayOfWeek as keyof WeeklyAvailability];
 
   // Si el día no tiene disponibilidad, retornar array vacío
   if (!daySchedule || !daySchedule.start || !daySchedule.end) {
@@ -104,7 +104,7 @@ export async function getAvailableSlots(
   
   for (const booking of existingBookings) {
     const totalDuration = booking.services.reduce(
-      (sum, bs) => sum + bs.service.duration,
+      (sum: number, bs: any) => sum + bs.service.duration,
       0
     );
     
@@ -206,13 +206,8 @@ export async function isSlotAvailable(
   serviceIds: string[],
   bufferMinutes: number = 15
 ): Promise<{ available: boolean; conflictingSlots?: string[] }> {
-  // Obtener duración total de los servicios
   const services = await prisma.barberService.findMany({
-    where: {
-      id: { in: serviceIds },
-      barberId,
-      isActive: true,
-    },
+    where: { id: { in: serviceIds }, barberId, isActive: true },
     select: { duration: true },
   });
 
@@ -220,57 +215,38 @@ export async function isSlotAvailable(
     return { available: false };
   }
 
-  const totalDuration = services.reduce((sum, s) => sum + s.duration, 0);
+  const totalDuration = services.reduce((sum: number, s: any) => sum + s.duration, 0);
   const scheduledTime = new Date(scheduledAt);
   const endTime = new Date(scheduledTime.getTime() + totalDuration * 60000);
   const bufferedEnd = new Date(endTime.getTime() + bufferMinutes * 60000);
 
-  // Buscar conflictos
-  const conflicts = await prisma.booking.findMany({
+  // Buscar TODOS los bookings del día y verificar superposición en memoria
+  const startOfDay = new Date(scheduledTime);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(scheduledTime);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const existingBookings = await prisma.booking.findMany({
     where: {
       barberId,
-      scheduledAt: {
-        lt: bufferedEnd,
-      },
-      status: {
-        in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'],
-      },
-      OR: [
-        {
-          scheduledAt: {
-            gte: scheduledTime,
-            lt: bufferedEnd,
-          },
-        },
-        {
-          AND: [
-            { scheduledAt: { lte: scheduledTime } },
-            { 
-              // Necesitaríamos calcular el end time de cada booking existente
-              // Esto es una simplificación
-            },
-          ],
-        },
-      ],
+      scheduledAt: { gte: startOfDay, lte: endOfDay },
+      status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] },
     },
-    include: {
-      services: {
-        include: {
-          service: true,
-        },
-      },
-    },
+    include: { services: { include: { service: true } } },
   });
 
-  if (conflicts.length > 0) {
-    // Calcular slots cercanos disponibles
-    const date = scheduledTime;
-    const availableSlots = await getAvailableSlots(barberId, date);
-    
-    return {
-      available: false,
-      conflictingSlots: availableSlots.slice(0, 5), // Retornar primeros 5 slots disponibles
-    };
+  for (const booking of existingBookings) {
+    const bookingDuration = booking.services.reduce((sum: number, bs: any) => sum + bs.service.duration, 0);
+    const bookingStart = booking.scheduledAt;
+    const bookingEnd = new Date(bookingStart.getTime() + bookingDuration * 60000);
+    const bookingBufferedEnd = new Date(bookingEnd.getTime() + bufferMinutes * 60000);
+
+    // Hay superposición si:
+    // mi inicio < fin del otro (con buffer) Y mi fin (con buffer) > inicio del otro
+    if (scheduledTime < bookingBufferedEnd && bufferedEnd > bookingStart) {
+      const availableSlots = await getAvailableSlots(barberId, scheduledTime);
+      return { available: false, conflictingSlots: availableSlots.slice(0, 5) };
+    }
   }
 
   return { available: true };

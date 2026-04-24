@@ -122,10 +122,10 @@ const MyBookingsPage = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 bg-dark-800 rounded-full flex items-center justify-center text-gray-400">
-                      {booking.barber?.name?.charAt(0) || 'B'}
+                      {booking.barber?.user?.name?.charAt(0) || 'B'}
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white">{booking.barber?.name || 'Barbero'}</h3>
+                      <h3 className="text-xl font-bold text-white">{booking.barber?.user?.name || 'Barbero'}</h3>
                       <p className="text-gray-400 text-sm">
                         {format(new Date(booking.scheduledAt), "EEEE d 'de' MMMM', ' HH:mm", { locale: es })}
                       </p>

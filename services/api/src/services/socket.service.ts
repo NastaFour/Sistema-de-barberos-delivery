@@ -22,6 +22,7 @@ interface LocationUpdate {
  * Configura los eventos de Socket.io para tiempo real
  */
 let ioInstance: Server | null = null;
+const activeBarbers = new Map<string, string>();
 
 export function setupSocketEvents(io: Server) {
   ioInstance = io;
@@ -30,6 +31,7 @@ export function setupSocketEvents(io: Server) {
 
     // Barbero se conecta y une a su room personal
     socket.on('barber:online', async ({ barberId }: { barberId: string }) => {
+      activeBarbers.set(socket.id, barberId);
       socket.join(`barber:${barberId}`);
       await prisma.barberProfile.update({
         where: { userId: barberId },
@@ -40,6 +42,7 @@ export function setupSocketEvents(io: Server) {
 
     // Barbero se desconecta
     socket.on('barber:offline', async ({ barberId }: { barberId: string }) => {
+      activeBarbers.delete(socket.id);
       socket.leave(`barber:${barberId}`);
       await prisma.barberProfile.update({
         where: { userId: barberId },
@@ -61,7 +64,7 @@ export function setupSocketEvents(io: Server) {
           );
 
           // Emitir solicitud a cada barbero cercano
-          nearbyBarbers.forEach((barber) => {
+          nearbyBarbers.forEach((barber: any) => {
             io.to(`barber:${barber.userId}`).emit('booking:new', {
               bookingId: `temp_${Date.now()}`,
               client: {
@@ -120,7 +123,7 @@ export function setupSocketEvents(io: Server) {
         select: { clientId: true },
       });
 
-      activeBookings.forEach((booking) => {
+      activeBookings.forEach((booking: any) => {
         io.to(`client:${booking.clientId}`).emit('barber:location', {
           barberId: data.barberId,
           latitude: data.latitude,
@@ -145,10 +148,22 @@ export function setupSocketEvents(io: Server) {
     );
 
     // Desconexión
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       console.log(`Cliente desconectado: ${socket.id}`);
-      // Aquí se podría manejar la lógica de marcar barbero como offline
-      // después de un timeout de reconexión
+      
+      const barberId = activeBarbers.get(socket.id);
+      if (barberId) {
+        try {
+          await prisma.barberProfile.update({
+            where: { userId: barberId },
+            data: { isActive: false },
+          });
+          activeBarbers.delete(socket.id);
+          console.log(`Barbero ${barberId} marcado offline por desconexión`);
+        } catch (error) {
+          console.error('Error al marcar barbero offline:', error);
+        }
+      }
     });
 
     // Reconexión automática
@@ -187,7 +202,7 @@ async function findNearbyAvailableBarbers(
   });
 
   // Filtrar por distancia usando Haversine
-  return barbers.filter((barber) => {
+  return barbers.filter((barber: any) => {
     if (!barber.latitude || !barber.longitude) return false;
     const distance = calculateDistance(
       { lat, lng },
