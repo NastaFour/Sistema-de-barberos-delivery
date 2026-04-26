@@ -1,11 +1,18 @@
-import Stripe from 'stripe';
+import StripeLib from 'stripe';
+
+// Fallback declarations for Stripe types due to v22 namespace export bug in commonjs
+declare namespace Stripe {
+  export type Event = any;
+  export type PaymentIntent = { id: string; [key: string]: any };
+  export type Account = { id: string; charges_enabled: boolean; payouts_enabled: boolean; [key: string]: any };
+}
 import prisma from '../config/db';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is required');
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+export const stripe = new StripeLib(process.env.STRIPE_SECRET_KEY);
 
 const PLATFORM_FEE_PERCENT = Number(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? 10) / 100;
 
@@ -116,7 +123,7 @@ export async function getBarberOnboardingLink(stripeAccountId: string): Promise<
 export async function handleWebhook(payload: Buffer, signature: string): Promise<void> {
   if (!process.env.STRIPE_WEBHOOK_SECRET) throw new Error('STRIPE_WEBHOOK_SECRET is required');
 
-  let event: any;
+  let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(payload, signature, process.env.STRIPE_WEBHOOK_SECRET);
   } catch {
@@ -125,7 +132,7 @@ export async function handleWebhook(payload: Buffer, signature: string): Promise
 
   switch (event.type) {
     case 'payment_intent.succeeded': {
-      const pi = event.data.object as any;
+      const pi = event.data.object as Stripe.PaymentIntent;
       const payment = await prisma.payment.findUnique({ where: { stripePaymentIntentId: pi.id } });
       if (payment) {
         await prisma.$transaction([
@@ -136,7 +143,7 @@ export async function handleWebhook(payload: Buffer, signature: string): Promise
       break;
     }
     case 'payment_intent.payment_failed': {
-      const pi = event.data.object as any;
+      const pi = event.data.object as Stripe.PaymentIntent;
       const payment = await prisma.payment.findUnique({ where: { stripePaymentIntentId: pi.id } });
       if (payment) {
         await prisma.$transaction([
@@ -147,7 +154,7 @@ export async function handleWebhook(payload: Buffer, signature: string): Promise
       break;
     }
     case 'account.updated': {
-      const account = event.data.object as any;
+      const account = event.data.object as Stripe.Account;
       const isActive = account.charges_enabled && account.payouts_enabled;
       await prisma.barberProfile.updateMany({
         where: { stripeAccountId: account.id },
