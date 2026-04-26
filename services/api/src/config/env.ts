@@ -7,6 +7,9 @@ export const envSchema = z.object({
   PORT: z.string().transform(Number),
   FRONTEND_URL: z.string().url().optional().default('http://localhost:5173'),
   NODE_ENV: z.enum(['development', 'production', 'test']).optional().default('development'),
+  STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required'),
+  STRIPE_PLATFORM_FEE_PERCENT: z.string().transform(Number).optional().default('10'),
 });
 
 export type Env = z.infer<typeof envSchema>;

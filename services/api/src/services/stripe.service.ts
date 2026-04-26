@@ -1,30 +1,11 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-const StripeLib: any = require('stripe');
-import { PrismaClient } from '@prisma/client';
-
-// Re-export the Stripe instance type
-type StripeInstance = InstanceType<typeof StripeLib>;
-type StripeEvent = { type: string; data: { object: unknown } };
-type StripePaymentIntent = {
-  id: string;
-  client_secret: string | null;
-  status: string;
-  metadata: Record<string, string>;
-};
-type StripeAccount = {
-  id: string;
-  charges_enabled: boolean;
-  payouts_enabled: boolean;
-};
-
-const prisma = new PrismaClient();
+import Stripe from 'stripe';
+import prisma from '../config/db';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is required');
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const stripe: StripeInstance = new (StripeLib as any)(process.env.STRIPE_SECRET_KEY) as StripeInstance;
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const PLATFORM_FEE_PERCENT = Number(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? 10) / 100;
 
@@ -66,7 +47,7 @@ export async function createPaymentIntent(
 export async function confirmPayment(
   paymentIntentId: string
 ): Promise<{ success: boolean; status: string }> {
-  const pi = await stripe.paymentIntents.retrieve(paymentIntentId) as StripePaymentIntent;
+  const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
   const isSucceeded = pi.status === 'succeeded';
   const isCanceled  = pi.status === 'canceled';
 
@@ -135,16 +116,16 @@ export async function getBarberOnboardingLink(stripeAccountId: string): Promise<
 export async function handleWebhook(payload: Buffer, signature: string): Promise<void> {
   if (!process.env.STRIPE_WEBHOOK_SECRET) throw new Error('STRIPE_WEBHOOK_SECRET is required');
 
-  let event: StripeEvent;
+  let event: any;
   try {
-    event = stripe.webhooks.constructEvent(payload, signature, process.env.STRIPE_WEBHOOK_SECRET) as StripeEvent;
+    event = stripe.webhooks.constructEvent(payload, signature, process.env.STRIPE_WEBHOOK_SECRET);
   } catch {
     throw new Error('Invalid webhook signature');
   }
 
   switch (event.type) {
     case 'payment_intent.succeeded': {
-      const pi = event.data.object as StripePaymentIntent;
+      const pi = event.data.object as any;
       const payment = await prisma.payment.findUnique({ where: { stripePaymentIntentId: pi.id } });
       if (payment) {
         await prisma.$transaction([
@@ -155,7 +136,7 @@ export async function handleWebhook(payload: Buffer, signature: string): Promise
       break;
     }
     case 'payment_intent.payment_failed': {
-      const pi = event.data.object as StripePaymentIntent;
+      const pi = event.data.object as any;
       const payment = await prisma.payment.findUnique({ where: { stripePaymentIntentId: pi.id } });
       if (payment) {
         await prisma.$transaction([
@@ -166,7 +147,7 @@ export async function handleWebhook(payload: Buffer, signature: string): Promise
       break;
     }
     case 'account.updated': {
-      const account = event.data.object as StripeAccount;
+      const account = event.data.object as any;
       const isActive = account.charges_enabled && account.payouts_enabled;
       await prisma.barberProfile.updateMany({
         where: { stripeAccountId: account.id },

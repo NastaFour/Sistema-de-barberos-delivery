@@ -7,7 +7,7 @@ services:
     container_name: barbergo-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: barbergo
     ports:
       - "5432:5432"
@@ -24,15 +24,26 @@ services:
     depends_on:
       - db
     environment:
-      - DATABASE_URL=postgresql://postgres:mysecretpassword@db:5432/barbergo?schema=public
-      - JWT_SECRET=tu_jwt_secret_super_seguro
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/barbergo?schema=public
+      - JWT_SECRET=${JWT_SECRET}
       - PORT=3001
-      # Reemplaza estas variables en tu entorno de producción
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - STRIPE_PLATFORM_FEE_PERCENT=10
+      - STRIPE_PLATFORM_FEE_PERCENT=${STRIPE_PLATFORM_FEE_PERCENT}
     ports:
       - "3001:3001"
+    restart: unless-stopped
+
+  # Frontend Web
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: barbergo-web
+    depends_on:
+      - api
+    ports:
+      - "80:80"
     restart: unless-stopped
 
 volumes:
