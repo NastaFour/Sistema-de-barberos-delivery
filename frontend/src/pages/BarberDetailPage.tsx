@@ -96,11 +96,45 @@ const BarberDetailPage = () => {
       {/* Bio & Specialties */}
       <div className="container mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
         
-        {/* Main Content */}
+        {/* Bio & Specialties — with live text reflow demo */}
         <div className="flex-1">
-          {barber.profile?.bio && (
-            <p className="text-gray-300 mb-6">{barber.profile.bio}</p>
-          )}
+          {barber.profile?.bio ? (
+            <div className="mb-6">
+              <p className="text-xs font-semibold tracking-widest text-primary-500 uppercase mb-2">
+                Sobre el barbero
+              </p>
+              {/* TextReflow canvas: bio wraps around avatar (circle) and services card (rect) */}
+              <div
+                className="rounded-xl overflow-hidden border border-dark-700/60 bg-dark-900/40"
+                style={{ padding: 0 }}
+              >
+                {/* tiny toolbar */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-dark-700/40">
+                  <span className="text-dark-400 text-xs">{barber.name}</span>
+                  <span className="text-dark-500 text-xs font-mono">arrastra ↕</span>
+                </div>
+                <TextReflowCanvas
+                  text={barber.profile.bio + ' ' + barber.profile.bio + ' ' + barber.profile.bio}
+                  fontSize={14}
+                  lineHeight={24}
+                  height={340}
+                  textColor="#94a3b8"
+                  circleObstacle={{
+                    label: barber.name.split(' ')[0],
+                    radius: 52,
+                    color: '#8b5cf6',
+                  }}
+                  rectObstacle={{
+                    label: 'Servicios',
+                    width: 88,
+                    height: 114,
+                    color: '#0ea5e9',
+                  }}
+                  className="bg-dark-950"
+                />
+              </div>
+            </div>
+          ) : null}
           {barber.profile?.specialties && (
             <div className="flex flex-wrap gap-2 mb-8">
               {barber.profile.specialties.map((spec: string, i: number) => (

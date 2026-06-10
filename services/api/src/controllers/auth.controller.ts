@@ -16,8 +16,8 @@ export async function register(req: Request, res: Response, next: NextFunction) 
     });
 
     res.status(201).json(successResponse(result, 'User registered successfully'));
-  } catch (error: any) {
-    if (error.message === 'User with this email already exists') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'User with this email already exists') {
       return res.status(409).json(errorResponse(error.message));
     }
     next(error);
@@ -31,8 +31,8 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     const result = await authService.loginUser({ email, password });
 
     res.json(successResponse(result, 'Login successful'));
-  } catch (error: any) {
-    if (error.message === 'Invalid credentials') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Invalid credentials') {
       return res.status(401).json(errorResponse(error.message));
     }
     next(error);
@@ -50,8 +50,8 @@ export async function refreshToken(req: Request, res: Response, next: NextFuncti
     const result = await authService.refreshTokens(refresh_token);
 
     res.json(successResponse(result, 'Token refreshed successfully'));
-  } catch (error: any) {
-    if (error.message === 'Invalid refresh token') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Invalid refresh token') {
       return res.status(401).json(errorResponse(error.message));
     }
     next(error);
@@ -67,8 +67,8 @@ export async function getMe(req: AuthRequest, res: Response, next: NextFunction)
     const user = await authService.getUserProfile(req.user.userId);
 
     res.json(successResponse(user));
-  } catch (error: any) {
-    if (error.message === 'User not found') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'User not found') {
       return res.status(404).json(errorResponse(error.message));
     }
     next(error);

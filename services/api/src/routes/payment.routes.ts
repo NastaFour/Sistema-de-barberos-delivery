@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.middleware';
+import prisma from '../config/db';
+import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { apiResponse } from '../utils/response';
 import {
   createPaymentIntent,
   confirmPayment,
@@ -11,17 +12,16 @@ import {
 } from '../services/stripe.service';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // ── POST /api/payments/create-intent ──────────────────
 // Auth: CLIENT
 router.post('/create-intent', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as Request & { user?: { id: string; role: string } }).user?.id;
+    const userId = (req as AuthRequest).user?.id;
     const { bookingId } = req.body as { bookingId: string };
 
     if (!bookingId) {
-      res.status(400).json({ success: false, error: 'bookingId requerido' });
+      apiResponse.error(res, 'bookingId requerido', 400);
       return;
     }
 
@@ -34,17 +34,17 @@ router.post('/create-intent', authenticate, async (req: Request, res: Response, 
     });
 
     if (!booking) {
-      res.status(404).json({ success: false, error: 'Reserva no encontrada' });
+      apiResponse.error(res, 'Reserva no encontrada', 404);
       return;
     }
 
     if (booking.status !== 'PENDING_PAYMENT') {
-      res.status(400).json({ success: false, error: 'Esta reserva ya fue procesada' });
+      apiResponse.error(res, 'Esta reserva ya fue procesada', 400);
       return;
     }
 
     if (!booking.barber.stripeAccountId || booking.barber.stripeAccountStatus !== 'active') {
-      res.status(400).json({ success: false, error: 'El barbero aún no tiene cuenta de pagos activa' });
+      apiResponse.error(res, 'El barbero aún no tiene cuenta de pagos activa', 400);
       return;
     }
 
@@ -54,7 +54,7 @@ router.post('/create-intent', authenticate, async (req: Request, res: Response, 
       booking.barber.stripeAccountId,
     );
 
-    res.json({ success: true, data: { clientSecret, paymentIntentId } });
+    apiResponse.success(res, { clientSecret, paymentIntentId });
   } catch (error) {
     next(error);
   }
@@ -67,12 +67,12 @@ router.post('/confirm', authenticate, async (req: Request, res: Response, next: 
     const { paymentIntentId } = req.body as { paymentIntentId: string };
 
     if (!paymentIntentId) {
-      res.status(400).json({ success: false, error: 'paymentIntentId requerido' });
+      apiResponse.error(res, 'paymentIntentId requerido', 400);
       return;
     }
 
     const result = await confirmPayment(paymentIntentId);
-    res.json({ success: true, data: result });
+    apiResponse.success(res, result);
   } catch (error) {
     next(error);
   }
@@ -100,9 +100,9 @@ router.post('/webhook', async (req: Request, res: Response) => {
 // Auth: BARBER
 router.post('/connect-account', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = (req as Request & { user?: { id: string; role: string; email: string } }).user;
+    const user = (req as AuthRequest).user;
     if (user?.role !== 'BARBER') {
-      res.status(403).json({ success: false, error: 'Solo para barberos' });
+      apiResponse.error(res, 'Solo para barberos', 403);
       return;
     }
 
@@ -112,19 +112,19 @@ router.post('/connect-account', authenticate, async (req: Request, res: Response
     });
 
     if (!profile) {
-      res.status(404).json({ success: false, error: 'Perfil de barbero no encontrado' });
+      apiResponse.error(res, 'Perfil de barbero no encontrado', 404);
       return;
     }
 
     // If already has account, generate new onboarding link
     if (profile.stripeAccountId) {
       const onboardingUrl = await getBarberOnboardingLink(profile.stripeAccountId);
-      res.json({ success: true, data: { onboardingUrl, accountId: profile.stripeAccountId } });
+      apiResponse.success(res, { onboardingUrl, accountId: profile.stripeAccountId });
       return;
     }
 
     const result = await createBarberConnectAccount(profile.id, user.email);
-    res.json({ success: true, data: result });
+    apiResponse.success(res, result);
   } catch (error) {
     next(error);
   }
@@ -134,9 +134,9 @@ router.post('/connect-account', authenticate, async (req: Request, res: Response
 // Auth: BARBER
 router.get('/connect-status', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = (req as Request & { user?: { id: string; role: string } }).user;
+    const user = (req as AuthRequest).user;
     if (user?.role !== 'BARBER') {
-      res.status(403).json({ success: false, error: 'Solo para barberos' });
+      apiResponse.error(res, 'Solo para barberos', 403);
       return;
     }
 
@@ -146,7 +146,7 @@ router.get('/connect-status', authenticate, async (req: Request, res: Response, 
     });
 
     if (!profile) {
-      res.status(404).json({ success: false, error: 'Perfil no encontrado' });
+      apiResponse.error(res, 'Perfil no encontrado', 404);
       return;
     }
 
@@ -155,13 +155,10 @@ router.get('/connect-status', authenticate, async (req: Request, res: Response, 
       onboardingUrl = await getBarberOnboardingLink(profile.stripeAccountId);
     }
 
-    res.json({
-      success: true,
-      data: {
-        status: profile.stripeAccountStatus ?? 'not_connected',
-        hasAccount: !!profile.stripeAccountId,
-        onboardingUrl,
-      },
+    apiResponse.success(res, {
+      status: profile.stripeAccountStatus ?? 'not_connected',
+      hasAccount: !!profile.stripeAccountId,
+      onboardingUrl,
     });
   } catch (error) {
     next(error);
