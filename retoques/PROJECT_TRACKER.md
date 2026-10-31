@@ -46,9 +46,9 @@ Remember: Elegance comes from precision. Minimal tokens consumed, maximum contex
 - [x] **Fase 1: El Cerebro** (DB Schema, PostGIS, Modelos Users/Barbers/Services/Bookings).
 - [x] **Fase 2: La Conexión** (Socket.io real-time, Algoritmo Haversine cercanía, WebSockets notificaciones).
 - [x] **Fase 3: Flujo de Confianza** (Auth JWT, Pagos Stripe, Sistema Ratings/Reviews, Disponibilidad barberos).
-- [/] **Fase 4: Experiencia Usuario** (Frontend Cliente + Mapa, Dashboard Barbero, Modo disponibilidad On/Off).
-- [ ] **Fase 5: QA & Bug Hunting** (Tests unitarios Jest, Race conditions, Reconexión automática, Cache local).
-- [ ] **Fase 6: Deploy & Production** (Docker, CI/CD, Monitoreo, Optimización performance).
+- [x] **Fase 4: Experiencia Usuario** (Frontend Cliente + Mapa, Dashboard Barbero, Modo disponibilidad On/Off).
+- [x] **Fase 5: QA & Bug Hunting** (Tests unitarios Jest 34/34, Race conditions ACID, Socket Zod validation, Replay protection).
+- [x] **Fase 6: Deploy & Production** (Docker pnpm multi-stage, Typecheck 100% 0 errores en los 5 workspaces, Ciclo Monday x3, DoD PASS).
 
 ## 4. 🧠 Decision Log
 - [2026-04-22] Backend: Node/Express/TS + Prisma + PostgreSQL elegido por proficiencia del developer.
@@ -58,10 +58,20 @@ Remember: Elegance comes from precision. Minimal tokens consumed, maximum contex
 - [2026-04-22] Frontend: React + Vite + Tailwind + shadcn/ui para desarrollo rápido y consistente.
 - [2026-04-22] State: Zustand para auth (persistencia refreshToken), TanStack Query para server state.
 - [2026-04-22] Mapa: Mapbox GL JS por mejor relación calidad/precio vs Google Maps.
-- [2026-04-22] Pagos: Stripe como pasarela principal (5% comisión por servicio).
+- [2026-06-15] Migración npm→pnpm: pnpm 9.15.9, pnpm-workspace.yaml, turbo.json, biome.json. Estructura apps/ + packages/shared-types.
+- [2026-06-15] Expo SDK 54→56: expo 56.0.11, react 19.2.3, react-native 0.85.0.
+- [2026-06-15] Fase 4 completada: endpoint `PATCH /barbers/:id/status` implementado, EarningsChart SVG funcional, tipos unificados en `@barber-delivery/shared-types`.
+- [2026-10-31] Culminación y Finiquitado de BarberGo:
+  - Saneamiento monorepo pnpm v11.9.0 y compatibilidad Expo SDK 56 en mobile-client y mobile-barber.
+  - Concurrencia ACID en `booking.service.ts` ($transaction con paso de `tx` a `isSlotAvailable` y bloqueo de `PENDING_PAYMENT`).
+  - Protección de 7 listeners WebSockets Socket.io con validación estricta Zod (`validatePayload`).
+  - Desacoplamiento de Stripe en `payment.controller.ts` con protección contra replay/idempotencia.
+  - Rediseño visual Web bajo el chasis "Midnight Barber Atelier" (`#0d0f12`, acentos dorados ámbar, sin morados de IA) y resortes de Emil Kowalski.
+  - Resolución de tipos en mobile-client y mobile-barber (`StyleSheet.absoluteFill`, `expo-task-manager`).
+  - Overrides pnpm de seguridad para mitigar CVEs (`tar`, `proxy-addr`, `node-forge`).
+  - Dockerfiles modernizados a pnpm multi-stage y docker-compose contextualizado a la raíz.
+  - DoD Gatekeeper auditado: PASS. Monorepo 100% verde (34/34 tests, 0 errores TS en 5 workspaces).
 
 ## 5. 🐞 Deferred Issues
-- Tests unitarios pendientes para availability.service.ts (Fase 5).
-- Reconexión automática y cache local para conexiones intermitentes (Fase 5 - crítico para Venezuela).
-- Emails reales de notificación (por ahora solo registros en DB).
-- Optimización de imágenes de galería (lazy loading, CDN).
+- Emails reales de notificación (por ahora push notifications y registros en DB).
+- Optimización avanzada de imágenes de galería (CDN externo / Cloudinary).

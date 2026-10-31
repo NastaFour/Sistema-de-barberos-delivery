@@ -1,0 +1,74 @@
+============================================================
+BARBERGO - COMANDOS EXPO GO VERIFICATION
+IP local: 192.168.0.104
+Ruta base: Sistema de  barberos delivery
+============================================================
+
+ANTES DE EMPEZAR:
+- Perfil de red Windows en "Privado" (no Publico)
+- PostgreSQL corriendo (Get-Service postgresql-x64-18)
+
+
+============================================================
+SHELL 1 - API (DEJAR ABIERTA)
+============================================================
+cd "C:\Users\j1347\Desktop\Proyectos programacion\trabajos\Sistema de  barberos delivery"
+pnpm --filter barber-delivery-backend dev
+
+Verificar: abri http://localhost:3001/health -> {"status":"ok"}
+
+
+============================================================
+SHELL 2 - WEB ADMIN
+============================================================
+cd "C:\Users\j1347\Desktop\Proyectos programacion\trabajos\Sistema de  barberos delivery"
+pnpm --filter barber-delivery-frontend dev
+
+Abrir: http://localhost:5173
+Login: admin@barbergo.com / Demo1234
+
+
+============================================================
+SHELL 3 - MOBILE CLIENT (Expo Go)
+============================================================
+cd "C:\Users\j1347\Desktop\Proyectos programacion\trabajos\Sistema de  barberos delivery"
+pnpm --filter barber-delivery-mobile expo start
+
+Escanear QR con Expo Go
+Login: cliente@barbergo.com / Demo1234
+Probar: buscar barberos, ver slots, crear booking
+
+
+============================================================
+SHELL 4 - MOBILE BARBER (Expo Go)
+============================================================
+cd "C:\Users\j1347\Desktop\Proyectos programacion\trabajos\Sistema de  barberos delivery"
+pnpm --filter barber-delivery-mobile-barber expo start
+
+Escanear QR con Expo Go
+Login: jose@barbergo.com / Demo1234
+Probar: agenda, toggle online/offline
+
+
+============================================================
+CREDENCIALES DEMO (todas password: Demo1234)
+============================================================
+admin@barbergo.com     -> ADMIN (web dashboard)
+cliente@barbergo.com   -> CLIENT (app cliente)
+jose@barbergo.com      -> BARBER Caracas, 4.8 stars
+maria@barbergo.com     -> BARBER Caracas, 4.5 stars
+
+
+============================================================
+SI FALLA CONEXION DESDE EL CELULAR
+============================================================
+1. Asegurate que el celular y la PC estan en la misma red WiFi
+2. Perfil de red Windows en "Privado"
+3. Si pide tunnel: presiona "t" en la terminal de Expo -> usa tunnel mode
+4. Firewall: permitir Node.js en redes privadas
+
+
+============================================================
+COMANDO RAPIDO SI ALGO FALLA
+============================================================
+npx expo install --fix    (en la carpeta de la app que falla)

@@ -18,8 +18,8 @@ services:
   # Backend Node.js
   api:
     build:
-      context: ./services/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/api/Dockerfile
     container_name: barbergo-api
     depends_on:
       - db
@@ -37,8 +37,8 @@ services:
   # Frontend Web
   web:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
     container_name: barbergo-web
     depends_on:
       - api

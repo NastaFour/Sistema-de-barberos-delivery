@@ -3,21 +3,22 @@
   "version": "1.0.0",
   "description": "Mobile barber service delivery platform - Book barbers to come to your location",
   "private": true,
-  "workspaces": [
-    "frontend",
-    "services/*",
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:api\" \"npm run dev:frontend\"",
-    "dev:api": "cd services/api && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "build": "npm run build:api && npm run build:frontend",
-    "build:api": "cd services/api && npm run build",
-    "build:frontend": "cd frontend && npm run build",
-    "install:all": "npm install"
+    "dev": "pnpm turbo run dev",
+    "dev:api": "pnpm --filter barber-delivery-backend dev",
+    "dev:web": "pnpm --filter barber-delivery-frontend dev",
+    "build": "pnpm turbo run build",
+    "build:api": "pnpm --filter barber-delivery-backend build",
+    "build:web": "pnpm --filter barber-delivery-frontend build",
+    "lint": "pnpm biome check .",
+    "format": "pnpm biome format --write .",
+    "check": "pnpm biome check --write .",
+    "typecheck": "pnpm turbo run typecheck",
+    "test": "pnpm turbo run test",
+    "clean": "pnpm -r exec -- rm -rf node_modules dist .turbo"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@biomejs/biome": "^1.9.4",
+    "turbo": "^2.0.0"
   }
 }

@@ -1,130 +1,137 @@
-# BarberGo - App de Delivery de Barbería a Domicilio
+﻿# BarberGo - App de Delivery de BarberÃ­a a Domicilio
 
-BarberGo es una aplicación completa que conecta clientes con barberos que ofrecen servicios a domicilio. Los barberos se desplazan hasta la ubicación del cliente para realizar cortes de cabello y otros servicios de barbería.
+BarberGo es una aplicaciÃ³n completa que conecta clientes con barberos que ofrecen servicios a domicilio. Los barberos se desplazan hasta la ubicaciÃ³n del cliente para realizar cortes de cabello y otros servicios de barberÃ­a.
 
-## 🚀 Características Principales
+## ðŸš€ CaracterÃ­sticas Principales
 
 ### Para Clientes
-- 🔍 Búsqueda de barberos cercanos con geolocalización
-- ⭐ Sistema de ratings y reseñas
-- 📅 Reservas de servicios a domicilio
-- 💳 Pagos integrados con comisión del 5%
-- 📍 Seguimiento de ubicación del barbero
-- 🔔 Notificaciones en tiempo real
+- ðŸ” BÃºsqueda de barberos cercanos con geolocalizaciÃ³n
+- â­ Sistema de ratings y reseÃ±as
+- ðŸ“… Reservas de servicios a domicilio
+- ðŸ’³ Pagos integrados con comisiÃ³n del 5%
+- ðŸ“ Seguimiento de ubicaciÃ³n del barbero
+- ðŸ”” Notificaciones en tiempo real
 
 ### Para Barberos
-- 📱 Dashboard de gestión de citas
-- 🕒 Gestión de disponibilidad horaria
-- 💼 Administración de servicios y precios
-- 🖼️ Galería de trabajos realizados
-- 📊 Estadísticas de ingresos y rendimiento
+- ðŸ“± Dashboard de gestiÃ³n de citas
+- ðŸ•’ GestiÃ³n de disponibilidad horaria
+- ðŸ’¼ AdministraciÃ³n de servicios y precios
+- ðŸ–¼ï¸ GalerÃ­a de trabajos realizados
+- ðŸ“Š EstadÃ­sticas de ingresos y rendimiento
 
 ### Para Administradores
-- 👥 Gestión de usuarios y barberos
-- 📈 Panel de estadísticas globales
-- 🔒 Moderación de contenido
-- 💰 Control de comisiones y pagos
+- ðŸ‘¥ GestiÃ³n de usuarios y barberos
+- ðŸ“ˆ Panel de estadÃ­sticas globales
+- ðŸ”’ ModeraciÃ³n de contenido
+- ðŸ’° Control de comisiones y pagos
 
-## 🛠️ Stack Tecnológico
+## ðŸ› ï¸ Stack TecnolÃ³gico
 
 ### Backend
 - **Node.js 20** + **Express 4** + **TypeScript 5**
 - **Prisma ORM** + **PostgreSQL 15**
-- **Zod** para validación de datos
-- **bcryptjs** para hashing de contraseñas
-- **jsonwebtoken** para autenticación JWT (access + refresh tokens)
+- **Zod** para validaciÃ³n de datos
+- **bcryptjs** para hashing de contraseÃ±as
+- **jsonwebtoken** para autenticaciÃ³n JWT (access + refresh tokens)
 - **Socket.io** para notificaciones en tiempo real
-- **express-rate-limit** para protección contra brute-force
+- **express-rate-limit** para protecciÃ³n contra brute-force
 
 ### Frontend
 - **React 18** + **Vite 5** + **TypeScript**
-- **React Router v6** para navegación
-- **TanStack Query v5** para gestión de estado del servidor
-- **Zustand** para estado global de autenticación
-- **Tailwind CSS** + diseño dark mode
+- **React Router v6** para navegaciÃ³n
+- **TanStack Query v5** para gestiÃ³n de estado del servidor
+- **Zustand** para estado global de autenticaciÃ³n
+- **Tailwind CSS** + diseÃ±o dark mode
 - **date-fns** para manejo de fechas
 - **Axios** con interceptores para API calls
 
-## 📁 Estructura del Proyecto
+## ðŸ“ Estructura del Proyecto
 
 ```
 barber-delivery-app/
-├── backend/
-│   ├── src/
-│   │   ├── config/          # Configuración de DB y entorno
-│   │   ├── middleware/      # Auth, validación, errores
-│   │   ├── routes/          # Endpoints de la API
-│   │   ├── controllers/     # Lógica de controladores
-│   │   ├── services/        # Lógica de negocio pura
-│   │   ├── schemas/         # Validación Zod
-│   │   ├── utils/           # Helpers (JWT, password, etc.)
-│   │   ├── types/           # Tipos TypeScript
-│   │   └── server.ts        # Punto de entrada
-│   ├── prisma/
-│   │   └── schema.prisma    # Schema de base de datos
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── api/             # Cliente API tipado
-│   │   ├── components/      # Componentes reutilizables
-│   │   ├── pages/           # Páginas principales
-│   │   ├── hooks/           # Custom hooks
-│   │   ├── store/           # Zustand stores
-│   │   ├── types/           # Tipos compartidos
-│   │   └── lib/             # Utilidades
-│   └── package.json
-└── README.md
+├── apps/
+│   ├── api/                # Backend Node.js + Express + Prisma
+│   │   ├── src/
+│   │   │   ├── config/     # Configuración de DB y entorno
+│   │   │   ├── middleware/ # Auth, validación, errores
+│   │   │   ├── routes/     # Endpoints de la API
+│   │   │   ├── controllers/# Lógica de controladores
+│   │   │   ├── services/   # Lógica de negocio pura
+│   │   │   ├── schemas/    # Validación Zod
+│   │   │   ├── utils/      # Helpers (JWT, password, etc.)
+│   │   │   ├── types/      # Tipos TypeScript
+│   │   │   └── server.ts   # Punto de entrada
+│   │   ├── prisma/
+│   │   │   └── schema.prisma
+│   │   └── package.json
+│   ├── web/                # Frontend Admin Panel (React + Vite)
+│   │   ├── src/
+│   │   │   ├── components/ # Componentes reutilizables
+│   │   │   ├── pages/      # Páginas principales
+│   │   │   ├── hooks/      # Custom hooks
+│   │   │   ├── services/   # Cliente API
+│   │   │   ├── store/      # Zustand stores
+│   │   │   └── lib/        # Utilidades
+│   │   └── package.json
+│   ├── mobile-barber/      # App Expo para barberos
+│   └── mobile-client/      # App Expo para clientes
+├── packages/
+│   └── shared-types/       # Tipos y Zod schemas compartidos
+├── pnpm-workspace.yaml
+├── turbo.json
+├── biome.json
+└── docker-compose.yml
 ```
 
-## 🚀 Instalación y Configuración
+## ðŸš€ InstalaciÃ³n y ConfiguraciÃ³n
 
 ### Prerrequisitos
 - Node.js 20+
 - PostgreSQL 15+
-- npm o yarn
+- pnpm 9+
 
 ### Backend
 
 ```bash
-cd backend
+cd apps/api
 
 # Instalar dependencias
-npm install
+pnpm install
 
 # Configurar variables de entorno
 cp .env.example .env
 # Editar .env con tus credenciales de PostgreSQL y secretos JWT
 
 # Generar cliente de Prisma
-npm run db:generate
+pnpm run db:generate
 
 # Ejecutar migraciones
-npm run db:migrate
+pnpm run db:migrate
 
 # Seed inicial (opcional)
-npm run db:seed
+pnpm run db:seed
 
 # Iniciar en modo desarrollo
-npm run dev
+pnpm run dev
 ```
 
 ### Frontend
 
 ```bash
-cd frontend
+cd apps/web
 
 # Instalar dependencias
-npm install
+pnpm install
 
 # Configurar variables de entorno
 cp .env.example .env
 # Editar .env con la URL de tu API backend
 
 # Iniciar en modo desarrollo
-npm run dev
+pnpm run dev
 ```
 
-## 🔐 Variables de Entorno
+## ðŸ” Variables de Entorno
 
 ### Backend (.env)
 ```env
@@ -140,16 +147,16 @@ NODE_ENV=development
 VITE_API_URL=http://localhost:3001/api
 ```
 
-## 📡 Endpoints de la API
+## ðŸ“¡ Endpoints de la API
 
-### Autenticación
+### AutenticaciÃ³n
 - `POST /api/auth/register` - Registro de usuario
 - `POST /api/auth/login` - Login
 - `POST /api/auth/refresh` - Refresh token
 - `GET /api/auth/me` - Obtener usuario actual
 
 ### Barberos
-- `GET /api/barbers` - Listar barberos (con filtros de ubicación)
+- `GET /api/barbers` - Listar barberos (con filtros de ubicaciÃ³n)
 - `GET /api/barbers/:id` - Perfil detallado de barbero
 
 ### Reservas
@@ -163,31 +170,31 @@ VITE_API_URL=http://localhost:3001/api
 - `GET /api/users` - Listar usuarios (Admin)
 
 ### Admin
-- `GET /api/admin/stats` - Estadísticas generales
+- `GET /api/admin/stats` - EstadÃ­sticas generales
 
-## 🔒 Seguridad
+## ðŸ”’ Seguridad
 
 - Passwords hasheados con bcrypt (cost factor 12)
-- JWT access tokens con expiración de 15 minutos
-- JWT refresh tokens con expiración de 7 días
-- Rate limiting en endpoints de autenticación (5 intentos/IP/15min)
-- Validación de datos con Zod en todos los endpoints
-- Sanitización de emails (trim + lowercase)
+- JWT access tokens con expiraciÃ³n de 15 minutos
+- JWT refresh tokens con expiraciÃ³n de 7 dÃ­as
+- Rate limiting en endpoints de autenticaciÃ³n (5 intentos/IP/15min)
+- ValidaciÃ³n de datos con Zod en todos los endpoints
+- SanitizaciÃ³n de emails (trim + lowercase)
 
-## 🎨 Diseño UI/UX
+## ðŸŽ¨ DiseÃ±o UI/UX
 
 - **Dark Mode** por defecto con colores oscuros profesionales
 - **Responsive Design** mobile-first
 - **Componentes Reutilizables** con consistencia visual
 - **Estados de Carga** con skeletons y spinners
 - **Notificaciones Toast** para feedback al usuario
-- **Badges de Estado** con códigos de color intuitivos
+- **Badges de Estado** con cÃ³digos de color intuitivos
 
-## 📝 Licencia
+## ðŸ“ Licencia
 
-MIT License - ver LICENSE para más detalles.
+MIT License - ver LICENSE para mÃ¡s detalles.
 
-## 👥 Contribución
+## ðŸ‘¥ ContribuciÃ³n
 
 Las contribuciones son bienvenidas. Por favor sigue estos pasos:
 
@@ -199,4 +206,6 @@ Las contribuciones son bienvenidas. Por favor sigue estos pasos:
 
 ---
 
-**BarberGo** - Tu barbero, donde estés. ✂️🏠
+**BarberGo** - Tu barbero, donde estÃ©s. âœ‚ï¸ðŸ 
+
+

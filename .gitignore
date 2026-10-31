@@ -1,6 +1,6 @@
-```
 # Dependencies
 node_modules/
+.turbo/
 
 # Build outputs
 dist/
@@ -39,6 +39,8 @@ coverage.xml
 *.swp
 *.swo
 *~
+.sessions/
+.atl/
 
 # OS generated files
 .DS_Store
@@ -81,4 +83,18 @@ htmlcov/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-```
+
+# >>> skillsGV install (generated - do not edit) >>>
+.agents/skills/
+.claude/skills/
+.codeium/windsurf/skills/
+.codex/skills/
+.copilot/skills/
+.cursor/skills/
+.deepseek/skills/
+.gemini/antigravity/skills/
+.gemini/skills/
+.kiro/skills/
+.opencode/skills/
+.skills-install/
+# <<< skillsGV install <<<
